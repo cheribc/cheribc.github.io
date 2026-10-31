@@ -1,0 +1,596 @@
+<title>Rogue Title Sequence</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a letterboxed 16:9 monitor sitting above a slim editing console, like a grading suite */
+:root{
+  --bg:#07090b;
+  --panel:#0d1115;
+  --line:#1c232a;
+  --fg:#cdd6dd;
+  --muted:#7a8792;
+  --steel:#8fb3c9;
+  --amber:#ffa53a;
+  --display:"Syncopate","Arial Black",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--mono);font-size:13px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 24px}
+.head h1{margin:0;font-family:var(--display);font-size:15px;letter-spacing:.32em;font-weight:700;color:var(--fg)}
+.head h1 b{color:var(--amber);font-weight:700}
+.head p{margin:0;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.stage{position:relative;width:100%;aspect-ratio:16/9;max-width:100%;background:#000;border:1px solid var(--line)}
+.stage canvas{display:block;width:100%;height:100%}
+#bigplay{position:absolute;left:50%;bottom:18%;transform:translateX(-50%);font:500 12px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--bg);background:var(--amber);border:0;padding:10px 18px;cursor:pointer}
+#bigplay:hover{filter:brightness(1.1)}
+.console{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);padding:14px}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+button{font:500 12px var(--mono);letter-spacing:.08em;color:var(--fg);background:transparent;border:1px solid var(--line);padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--steel)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+#tc{font-variant-numeric:tabular-nums;font-size:15px;letter-spacing:.06em;color:var(--fg);margin-left:4px}
+#tc small{color:var(--muted);font-size:12px}
+#phase{margin-left:auto;color:var(--amber);letter-spacing:.2em;text-transform:uppercase;font-size:11px}
+.scrub{display:flex;flex-direction:column;gap:4px}
+#scrub{width:100%;accent-color:var(--amber);margin:0}
+.phases{display:flex;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.phases span{border-left:1px solid var(--line);padding-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto;gap:10px;align-items:end}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);min-width:0}
+.fields input{font:500 13px var(--mono);letter-spacing:.1em;color:var(--fg);background:var(--bg);border:1px solid var(--line);padding:7px 9px;min-width:0;text-transform:uppercase}
+#export{border-color:var(--amber);color:var(--amber)}
+#status{margin:0;color:var(--muted);font-size:12px;min-height:1.5em}
+@media (max-width:640px){
+  .fields{grid-template-columns:1fr}
+  .phases{font-size:9px;letter-spacing:.06em}
+  #phase{margin-left:0}
+}
+</style>
+
+<main class="wrap">
+  <header class="head">
+    <h1>R<b>O</b>GUE</h1>
+    <p>Title sequence · 14 s · 24 fps · 2.39:1 · three.js</p>
+  </header>
+
+  <section class="stage">
+    <canvas id="view" aria-label="Rogue title sequence render"></canvas>
+    <button id="bigplay" type="button">Play sequence</button>
+  </section>
+
+  <section class="console" aria-label="Sequence controls">
+    <div class="transport">
+      <button id="play" type="button">Play</button>
+      <button id="restart" type="button">Restart</button>
+      <output id="tc">00:00:12:22 <small>/ 00:00:14:00</small></output>
+      <span id="phase">Title</span>
+    </div>
+    <div class="scrub">
+      <input id="scrub" type="range" min="0" max="336" step="1" value="310" aria-label="Scrub timeline">
+      <div class="phases">
+        <span style="width:26.4%">Formation</span>
+        <span style="width:23.6%">Break</span>
+        <span style="width:27.1%">Assemble</span>
+        <span style="width:22.9%">Title</span>
+      </div>
+    </div>
+    <div class="fields">
+      <label for="title">Title<input id="title" type="text" value="ROGUE" maxlength="12" autocomplete="off" spellcheck="false"></label>
+      <label for="tag">Tagline<input id="tag" type="text" value="BREAK FORMATION" maxlength="40" autocomplete="off" spellcheck="false"></label>
+      <button id="export" type="button" hidden>Export 1080p video</button>
+    </div>
+    <p id="status" role="status">Loading the scene…</p>
+  </section>
+</main>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ---------- constants ---------- */
+const FPS = 24, DUR = 14, TOTAL = DUR * FPS;
+const COLS = 70, ROWS = 40, N = COLS * ROWS;
+const SPACING = 0.75, MARCH = 0.55;
+const R = 2 * COLS + 35;              // the one that breaks rank
+const T_BREAK = 3.7;
+const TEXT_W = 9.6;
+const PHASES = [[0,'Formation'],[3.7,'Break'],[7,'Assemble'],[10.8,'Title']];
+
+const $ = id => document.getElementById(id);
+const canvas = $('view'), statusEl = $('status');
+
+/* ---------- helpers ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const smooth = (a,b,x) => { const t = clamp01((x-a)/(b-a)); return t*t*(3-2*t); };
+const easeIO = u => u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u+2,3)/2;
+const Z = new THREE.Vector3(0,0,1);
+
+/* ---------- renderer & scene ---------- */
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  statusEl.textContent = 'WebGL is not available in this browser, so the sequence cannot render.';
+  throw e;
+}
+renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070a);
+scene.fog = new THREE.FogExp2(0x05070a, 0.034);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, 16/9, 0.1, 200);
+
+scene.add(new THREE.AmbientLight(0x2a3a4a, 0.5));
+const key = new THREE.DirectionalLight(0x9fc4ff, 1.4); key.position.set(-5, 8, 6); scene.add(key);
+const rim = new THREE.DirectionalLight(0x5f7f9f, 1.8); rim.position.set(2, 4, -12); scene.add(rim);
+
+const grid = new THREE.GridHelper(160, 200, 0x23313d, 0x16202a);
+grid.position.y = -3.35; grid.material.transparent = true; grid.material.opacity = 0.55;
+scene.add(grid);
+
+// shards
+const shardGeo = new THREE.OctahedronGeometry(1, 0);
+shardGeo.scale(0.036, 0.036, 0.17);
+const shardMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.75, roughness: 0.3, envMapIntensity: 0.35 });
+const shards = new THREE.InstancedMesh(shardGeo, shardMat, N);
+shards.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+shards.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N*3), 3);
+shards.instanceColor.setUsage(THREE.DynamicDrawUsage);
+shards.frustumCulled = false;
+scene.add(shards);
+
+// the rogue
+const rogueMat = new THREE.MeshStandardMaterial({ color: 0xffa53a, emissive: 0xff8a1f, emissiveIntensity: 0, metalness: 0.4, roughness: 0.35 });
+const rogue = new THREE.Mesh(shardGeo, rogueMat);
+const rogueLight = new THREE.PointLight(0xff9a3a, 0, 0, 2);
+rogue.add(rogueLight);
+scene.add(rogue);
+
+// trail
+const TRAIL = 48;
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL*3), 3));
+const trailCol = new Float32Array(TRAIL*3);
+trailGeo.setAttribute('color', new THREE.BufferAttribute(trailCol, 3));
+const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+trail.frustumCulled = false;
+scene.add(trail);
+
+// dust
+const DUST = 700, dustBase = new Float32Array(DUST*3);
+{ const r = mulberry32(7); for (let i=0;i<DUST;i++){ dustBase[i*3]=r()*44-22; dustBase[i*3+1]=r()*10-3.2; dustBase[i*3+2]=r()*44-34; } }
+const dustGeo = new THREE.BufferGeometry();
+dustGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(DUST*3), 3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0x6f8aa0, size: 0.035, transparent: true, opacity: 0.55, depthWrite: false }));
+dust.frustumCulled = false;
+scene.add(dust);
+
+// tagline plane
+const tagCanvas = document.createElement('canvas'); tagCanvas.width = 2048; tagCanvas.height = 128;
+const tagTex = new THREE.CanvasTexture(tagCanvas); tagTex.colorSpace = THREE.SRGBColorSpace;
+const tagMat = new THREE.MeshBasicMaterial({ map: tagTex, transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+const tagPlane = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.5), tagMat);
+scene.add(tagPlane);
+
+/* ---------- post ---------- */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1280, 720), 0.85, 0.55, 0.88);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+const finalPass = new ShaderPass({
+  uniforms: { tDiffuse:{value:null}, uTime:{value:0}, uFade:{value:1}, uBar:{value:0.128}, uAspect:{value:16/9} },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform float uTime, uFade, uBar, uAspect; varying vec2 vUv;
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){
+      vec2 uv = vUv; vec2 c = uv - 0.5;
+      vec2 dir = c / max(length(c), 1e-4);
+      float ca = 0.0035 * length(c);
+      vec3 col = vec3(texture2D(tDiffuse, uv + dir*ca).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - dir*ca).b);
+      float v = 1.0 - smoothstep(0.3, 0.95, length(c*vec2(uAspect,1.0)));
+      col *= mix(0.5, 1.0, v);
+      col += (hash(floor(uv*vec2(1920.0,1080.0)) + fract(uTime*7.31)*91.7) - 0.5) * 0.04;
+      col *= uFade;
+      if (uv.y < uBar || uv.y > 1.0 - uBar) col = vec3(0.0);
+      gl_FragColor = vec4(col, 1.0);
+    }`
+});
+composer.addPass(finalPass);
+
+function setRenderSize(w, h){
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+}
+
+/* ---------- formation ---------- */
+const baseQ = new THREE.Quaternion().setFromUnitVectors(Z, new THREE.Vector3(1,0,0));
+const hatchQ = new THREE.Quaternion().setFromUnitVectors(Z, new THREE.Vector3(Math.sin(0.49), Math.cos(0.49), 0.18).normalize());
+const rogueFinalQ = new THREE.Quaternion().setFromUnitVectors(Z, new THREE.Vector3(Math.sin(-0.72), Math.cos(-0.72), 0.25).normalize());
+const P0 = new THREE.Vector3();
+
+function formPos(i, t, out){
+  const c = i % COLS, r = (i / COLS) | 0;
+  out.set(-26 + c*SPACING + MARCH*t, -3 + 0.14 + 0.06*Math.sin(t*Math.PI*2.2), -8 - r*SPACING);
+  return out;
+}
+const restDist = new Float32Array(N);
+{ const a = new THREE.Vector3(), b = new THREE.Vector3(); formPos(R, 0, a);
+  for (let i=0;i<N;i++){ formPos(i,0,b); restDist[i] = Math.hypot(b.x-a.x, b.z-a.z); } }
+
+const _dir = new THREE.Vector3(), _lq = new THREE.Quaternion(), _kq = new THREE.Quaternion(), _ax = new THREE.Vector3(0,0,1);
+function formationState(i, t, rogPos, pOut, qOut){
+  formPos(i, t, pOut);
+  const d = restDist[i];
+  // shockwave from the break
+  const k = Math.exp(-Math.pow((t - (T_BREAK + 0.15 + d/14)) * 4, 2));
+  pOut.y += 0.38 * k;
+  qOut.copy(baseQ);
+  if (k > 0.001) { _kq.setFromAxisAngle(_ax, k * 0.9); qOut.multiply(_kq); }
+  // everyone turns to watch the rogue
+  const w = 0.85 * smooth(4.5 + d*0.03, 6.3 + d*0.03, t);
+  if (w > 0) {
+    _dir.subVectors(rogPos, pOut).normalize();
+    _lq.setFromUnitVectors(Z, _dir);
+    qOut.slerp(_lq, w);
+  }
+}
+
+/* ---------- rogue path ---------- */
+let roguePath = null, rogueTimes = null, rogueFinal = new THREE.Vector3();
+const ROGUE_KEYS = [3.7, 4.5, 5.7, 7.0, 8.6, 10.0, 10.8];
+function buildRoguePath(b){
+  formPos(R, T_BREAK, P0);
+  const midY = (b.minY + b.maxY) / 2;
+  rogueFinal.set(b.maxX + 0.75, b.minY + 0.38, 0.35);
+  const pts = [
+    P0.clone(),
+    P0.clone().add(new THREE.Vector3(-0.6, 1.6, 0.9)),
+    new THREE.Vector3(P0.x - 5.5, 2.6, P0.z + 6),
+    new THREE.Vector3(b.minX - 2.2, midY + 0.5, 3.2),
+    new THREE.Vector3((b.minX + b.maxX)/2, midY + 0.75, 1.7),
+    new THREE.Vector3(b.maxX + 0.5, midY + 0.35, 1.2),
+    rogueFinal.clone()
+  ];
+  roguePath = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+  rogueTimes = ROGUE_KEYS;
+}
+function pathParam(t, times){
+  const n = times.length;
+  if (t <= times[0]) return 0;
+  if (t >= times[n-1]) return 1;
+  let j = 0; while (t > times[j+1]) j++;
+  return (j + (t - times[j]) / (times[j+1] - times[j])) / (n - 1);
+}
+function rogueAt(t, out){
+  if (t <= T_BREAK) return formPos(R, t, out);
+  if (t >= 10.8) return out.copy(rogueFinal).add(new THREE.Vector3(0, 0.035*Math.sin(t*2.1), 0));
+  return roguePath.getPoint(pathParam(t, rogueTimes), out);
+}
+
+/* ---------- text targets ---------- */
+const targets = new Float32Array(N*3);
+const S = new Float32Array(N*3), C = new Float32Array(N*3), SQ = new Float32Array(N*4);
+const sTime = new Float32Array(N), dur = new Float32Array(N), bright = new Float32Array(N);
+let bounds = { minX:-4.8, maxX:4.8, minY:-1, maxY:1 };
+
+function sampleText(title){
+  const tc = document.createElement('canvas'); tc.width = 2048; tc.height = 512;
+  const g = tc.getContext('2d', { willReadFrequently: true });
+  let size = 300;
+  const setFont = () => { g.font = `700 ${size}px Syncopate, "Arial Black", sans-serif`; if ('letterSpacing' in g) g.letterSpacing = `${Math.round(size*0.04)}px`; };
+  setFont();
+  const w = g.measureText(title).width;
+  if (w > 1880) { size = Math.floor(size * 1880 / w); setFont(); }
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff';
+  g.fillText(title, 1024, 256);
+  const data = g.getImageData(0, 0, 2048, 512).data;
+  const pts = [];
+  let minPx=1e9, maxPx=-1e9, minPy=1e9, maxPy=-1e9;
+  for (let y=0; y<512; y+=2) for (let x=0; x<2048; x+=2) {
+    if (data[(y*2048 + x)*4 + 3] > 140) { pts.push(x, y); if(x<minPx)minPx=x; if(x>maxPx)maxPx=x; if(y<minPy)minPy=y; if(y>maxPy)maxPy=y; }
+  }
+  return { pts, minPx, maxPx, minPy, maxPy };
+}
+
+function rebuild(title, tagline){
+  title = (title || '').trim().toUpperCase() || 'ROGUE';
+  const s = sampleText(title);
+  const count = s.pts.length / 2;
+  const rnd = mulberry32(1987);
+  const order = new Uint32Array(count); for (let i=0;i<count;i++) order[i]=i;
+  for (let i=count-1;i>0;i--){ const j=(rnd()*(i+1))|0; const tmp=order[i]; order[i]=order[j]; order[j]=tmp; }
+  const scale = TEXT_W / Math.max(1, s.maxPx - s.minPx);
+  const cx = (s.minPx + s.maxPx)/2, cy = (s.minPy + s.maxPy)/2;
+  const shift = -0.45;
+  for (let i=0;i<N;i++){
+    const k = order[i % count] * 2;
+    const jit = i >= count ? 0.02 : 0;
+    targets[i*3]   = (s.pts[k] - cx) * scale + shift + (rnd()-.5)*jit;
+    targets[i*3+1] = -(s.pts[k+1] - cy) * scale + 0.15 + (rnd()-.5)*jit;
+    targets[i*3+2] = (rnd() - 0.5) * 0.12;
+  }
+  const halfH = (s.maxPy - s.minPy) * scale / 2;
+  bounds = { minX: (s.minPx-cx)*scale + shift, maxX: (s.maxPx-cx)*scale + shift, minY: 0.15 - halfH, maxY: 0.15 + halfH };
+  buildRoguePath(bounds);
+
+  // when does the rogue pass each x?
+  const passT = [], passX = [];
+  const v = new THREE.Vector3();
+  for (let t=6.6; t<=10.8; t+=0.01){ rogueAt(t, v); passT.push(t); passX.push(v.x); }
+  const passAt = x => { for (let j=0;j<passX.length;j++) if (passX[j] >= x) return passT[j]; return 10.8; };
+
+  const p = new THREE.Vector3(), q = new THREE.Quaternion(), rp = new THREE.Vector3();
+  for (let i=0;i<N;i++){
+    const tx = targets[i*3], ty = targets[i*3+1], tz = targets[i*3+2];
+    const r1 = rnd(), r2 = rnd(), r3 = rnd();
+    const D = 1.25 + 0.03*restDist[i] + r1*0.45;
+    const st = Math.max(5.9, passAt(tx) + 0.1 - D*0.85 + (r2-.5)*0.25);
+    sTime[i] = st; dur[i] = D;
+    rogueAt(st, rp);
+    formationState(i, st, rp, p, q);
+    S[i*3]=p.x; S[i*3+1]=p.y; S[i*3+2]=p.z;
+    SQ[i*4]=q.x; SQ[i*4+1]=q.y; SQ[i*4+2]=q.z; SQ[i*4+3]=q.w;
+    C[i*3]   = (p.x + tx)/2 + (r3-.5)*3;
+    C[i*3+1] = Math.max(p.y, ty) + 2.2 + r2*2.8;
+    C[i*3+2] = (p.z + tz)/2 + 3 + r1*3;
+    bright[i] = 0.82 + r3*0.3;
+  }
+
+  // tagline
+  const g = tagCanvas.getContext('2d');
+  g.clearRect(0,0,2048,128);
+  g.font = '500 54px "IBM Plex Mono", Menlo, monospace';
+  if ('letterSpacing' in g) g.letterSpacing = '22px';
+  g.fillStyle = '#a9bccb'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText((tagline || '').trim().toUpperCase(), 1024 + 11, 66);
+  tagTex.needsUpdate = true;
+  tagPlane.position.set((bounds.minX + bounds.maxX)/2, bounds.minY - 0.62, 0);
+}
+
+/* ---------- camera ---------- */
+const CAM_T = [0, 3.4, 5.2, 7.0, 10.6, 14];
+const camPos = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(13,-1.9,-3), new THREE.Vector3(9,-2.15,-6.5), new THREE.Vector3(3,-0.2,3),
+  new THREE.Vector3(-1.5,0.5,13), new THREE.Vector3(0,0.25,12), new THREE.Vector3(0,0.12,10.4)], false, 'centripetal');
+const camTgt = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0,-3,-16), new THREE.Vector3(3,-2.8,-11), new THREE.Vector3(-2,0.8,-6),
+  new THREE.Vector3(-1,0.3,0), new THREE.Vector3(0,0,0), new THREE.Vector3(0,-0.08,0)], false, 'centripetal');
+
+/* ---------- render a frame at time t (deterministic) ---------- */
+const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+const rp = new THREE.Vector3(), tmpV = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), tgt = new THREE.Vector3();
+const STEEL = [0.56, 0.66, 0.74];
+let frameNo = 0;
+
+function renderAt(t){
+  rogueAt(t, rp);
+  const col = shards.instanceColor.array;
+  const sweepX = -9 + 18 * smooth(10.9, 12.8, t);
+  const sweepOn = t > 10.7 && t < 13.2;
+
+  for (let i=0;i<N;i++){
+    const st = sTime[i];
+    let s = 1, stretch = 1, gain = bright[i];
+    if (t < st) {
+      formationState(i, t, rp, p, q);
+    } else {
+      const u = clamp01((t - st) / dur[i]);
+      const e = easeIO(u), a = 1 - e;
+      const i3 = i*3;
+      p.set(a*a*S[i3] + 2*a*e*C[i3] + e*e*targets[i3],
+            a*a*S[i3+1] + 2*a*e*C[i3+1] + e*e*targets[i3+1],
+            a*a*S[i3+2] + 2*a*e*C[i3+2] + e*e*targets[i3+2]);
+      tmpQ.set(SQ[i*4], SQ[i*4+1], SQ[i*4+2], SQ[i*4+3]);
+      q.copy(tmpQ).slerp(hatchQ, e);
+      stretch = 1 + 1.6 * Math.sin(Math.PI * u);
+      const land = st + dur[i];
+      if (t >= land - 0.04) gain += 2.6 * Math.exp(-Math.pow((t - land) * 5, 2));
+      if (sweepOn) gain += 2.1 * Math.exp(-Math.pow((targets[i3] - sweepX) / 0.85, 2));
+    }
+    if (i === R) s = 0;
+    sc.set(s, s, s * stretch);
+    m.compose(p, q, sc);
+    shards.setMatrixAt(i, m);
+    col[i*3] = STEEL[0]*gain; col[i*3+1] = STEEL[1]*gain; col[i*3+2] = STEEL[2]*gain;
+  }
+  shards.instanceMatrix.needsUpdate = true;
+  shards.instanceColor.needsUpdate = true;
+
+  // rogue
+  rogue.position.copy(rp);
+  if (t <= T_BREAK) rogue.quaternion.copy(baseQ);
+  else {
+    rogueAt(Math.min(t + 0.03, 10.8), tmpV);
+    tmpV.sub(rp);
+    if (tmpV.lengthSq() > 1e-8) { tmpQ.setFromUnitVectors(Z, tmpV.normalize()); } else tmpQ.copy(rogueFinalQ);
+    rogue.quaternion.copy(baseQ).slerp(tmpQ, smooth(T_BREAK, 4.1, t));
+    rogue.quaternion.slerp(rogueFinalQ, smooth(10.1, 10.85, t));
+  }
+  const flicker = (t > 2.9 && t < 3.15) ? 0.35 : 1;
+  let glow = 3.2 * smooth(2.3, 3.6, t) * flicker;
+  glow += 4.5 * Math.exp(-Math.pow((t - 10.85) * 3, 2)) * (t > 10 ? 1 : 0);
+  rogueMat.emissiveIntensity = glow;
+  rogueLight.intensity = 9 * glow;
+  const rs = 1.25 * (1 + 0.6 * Math.exp(-Math.pow((t - 10.85) * 4, 2)));
+  rogue.scale.set(rs, rs, rs);
+
+  // trail
+  const tp = trailGeo.attributes.position.array;
+  const trailAmt = smooth(3.7, 4.0, t) * (1 - smooth(10.6, 11.2, t));
+  for (let k=0;k<TRAIL;k++){
+    rogueAt(Math.max(0, t - k*0.03), tmpV);
+    tp[k*3]=tmpV.x; tp[k*3+1]=tmpV.y; tp[k*3+2]=tmpV.z;
+    const f = trailAmt * Math.pow(1 - k/TRAIL, 1.6) * 1.6;
+    trailCol[k*3]=1.0*f; trailCol[k*3+1]=0.6*f; trailCol[k*3+2]=0.2*f;
+  }
+  trailGeo.attributes.position.needsUpdate = true;
+  trailGeo.attributes.color.needsUpdate = true;
+
+  // dust
+  const dp = dustGeo.attributes.position.array;
+  for (let i=0;i<DUST;i++){
+    dp[i*3]   = ((dustBase[i*3] + 0.18*t + 22) % 44 + 44) % 44 - 22;
+    dp[i*3+1] = dustBase[i*3+1] + 0.12*Math.sin(t*0.6 + i);
+    dp[i*3+2] = dustBase[i*3+2];
+  }
+  dustGeo.attributes.position.needsUpdate = true;
+
+  // tagline
+  tagMat.opacity = 0.9 * smooth(11.2, 12.2, t);
+
+  // camera
+  const cp = pathParam(t, CAM_T);
+  camPos.getPoint(cp, camera.position);
+  camTgt.getPoint(cp, tgt);
+  const follow = 0.65 * smooth(3.5, 4.6, t) * (1 - smooth(6.4, 7.6, t));
+  tgt.lerp(rp, follow);
+  camera.position.x += Math.sin(t*0.9) * 0.03;
+  camera.position.y += Math.sin(t*1.3 + 1) * 0.02;
+  camera.lookAt(tgt);
+
+  finalPass.uniforms.uTime.value = t;
+  finalPass.uniforms.uFade.value = smooth(0, 0.9, t) * (1 - smooth(13.1, 14, t));
+  composer.render();
+}
+
+/* ---------- UI ---------- */
+let t = 12.9, playing = false, exporting = false, last = 0, dirty = true;
+const tcEl = $('tc'), phaseEl = $('phase'), scrub = $('scrub'), playBtn = $('play'), bigplay = $('bigplay');
+
+function timecode(sec){
+  const f = Math.min(TOTAL, Math.round(sec * FPS));
+  const ss = Math.floor(f / FPS), ff = f % FPS;
+  const pad = n => String(n).padStart(2, '0');
+  return `00:00:${pad(ss)}:${pad(ff)}`;
+}
+function syncUI(){
+  tcEl.innerHTML = `${timecode(t)} <small>/ 00:00:14:00</small>`;
+  let name = PHASES[0][1]; for (const [s, n] of PHASES) if (t >= s) name = n;
+  phaseEl.textContent = name;
+  scrub.value = Math.round(t * FPS);
+  playBtn.textContent = playing ? 'Pause' : 'Play';
+  bigplay.hidden = playing || exporting;
+}
+function play(){ if (exporting) return; if (t >= DUR - 0.01 || !playing && t === 12.9 && !started) t = 0; started = true; playing = true; last = performance.now(); syncUI(); }
+let started = false;
+function pause(){ playing = false; syncUI(); }
+
+playBtn.onclick = () => playing ? pause() : play();
+bigplay.onclick = () => { t = 0; started = true; play(); };
+$('restart').onclick = () => { t = 0; started = true; dirty = true; play(); };
+scrub.oninput = () => { started = true; playing = false; t = scrub.value / FPS; dirty = true; syncUI(); };
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); playing ? pause() : play(); }
+});
+
+let rebuildTimer = 0;
+function scheduleRebuild(){
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(() => { rebuild($('title').value, $('tag').value); dirty = true; }, 250);
+}
+$('title').oninput = scheduleRebuild;
+$('tag').oninput = scheduleRebuild;
+
+function fitPreview(){
+  if (exporting) return;
+  const w = Math.min(1280, Math.round(canvas.clientWidth * Math.min(window.devicePixelRatio || 1, 2)));
+  setRenderSize(Math.max(320, w), Math.round(Math.max(320, w) * 9 / 16));
+  dirty = true;
+}
+new ResizeObserver(fitPreview).observe(canvas);
+
+function loop(now){
+  requestAnimationFrame(loop);
+  if (exporting) return;
+  if (playing) {
+    t += Math.min(0.1, (now - last) / 1000);
+    last = now;
+    if (t >= DUR) { t = DUR; playing = false; }
+    dirty = true;
+  }
+  if (dirty) { renderAt(t); syncUI(); dirty = false; }
+}
+
+/* ---------- export ---------- */
+let downloads = null;
+const exportBtn = $('export');
+if (window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('downloads').then(d => { downloads = d; exportBtn.hidden = !d || typeof MediaRecorder === 'undefined'; }).catch(() => {});
+}
+const wait = ms => new Promise(r => setTimeout(r, Math.max(0, ms)));
+
+exportBtn.onclick = async () => {
+  if (!downloads || exporting) return;
+  const types = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  const mime = types.find(x => MediaRecorder.isTypeSupported(x));
+  if (!mime) { statusEl.textContent = 'This browser cannot record video from a canvas. Try Chrome or Edge.'; return; }
+  const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+  exporting = true; playing = false; exportBtn.disabled = true; syncUI();
+  setRenderSize(1920, 1080);
+  const stream = canvas.captureStream(FPS);
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16_000_000 });
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const stopped = new Promise(r => rec.onstop = r);
+  renderAt(0);
+  rec.start(250);
+  const t0 = performance.now();
+  for (let f = 0; f <= TOTAL; f++) {
+    t = f / FPS; renderAt(t);
+    if (f % 6 === 0) { syncUI(); statusEl.textContent = `Recording frame ${f} of ${TOTAL} in real time. Keep this tab in front.`; }
+    await wait(t0 + (f + 1) * 1000 / FPS - performance.now());
+  }
+  rec.stop(); await stopped;
+  stream.getTracks().forEach(tr => tr.stop());
+  exporting = false; exportBtn.disabled = false; fitPreview(); syncUI();
+  const blob = new Blob(chunks, { type: mime.split(';')[0] });
+  const slug = (($('title').value || 'rogue').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'rogue');
+  try {
+    await downloads.save({ filename: `${slug}-title-1080p.${ext}`, data: blob });
+    statusEl.textContent = `Saved ${slug}-title-1080p.${ext} (${(blob.size/1e6).toFixed(1)} MB).`;
+  } catch (e) {
+    const code = e && e.code;
+    statusEl.textContent = code === 'declined' ? 'Export finished, but the save was cancelled.'
+      : code === 'rate_limited' ? 'Another save prompt is open. Close it and export again.'
+      : code === 'rejected_extension' || code === 'extension_not_enabled' ? `Saving .${ext} files is not available here.`
+      : 'Saving is not available in this view.';
+  }
+};
+
+/* ---------- boot ---------- */
+async function boot(){
+  try { await Promise.race([document.fonts.load('700 120px Syncopate'), wait(3000)]); await document.fonts.load('500 54px "IBM Plex Mono"'); } catch {}
+  rebuild($('title').value, $('tag').value);
+  fitPreview();
+  statusEl.textContent = 'Edit the title or tagline and the shards re-form around the new word. Space plays and pauses.';
+  requestAnimationFrame(loop);
+}
+const ready = boot();
+window.__seq = { ready, renderAt, setRenderSize, setText: (a, b) => { $('title').value = a; $('tag').value = b; rebuild(a, b); } };
+</script>
